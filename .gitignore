@@ -1,2 +1,12 @@
 # Virtualenv directory
 vimcar
+
+# Python
+api/__pycache__/
+
+# Python files
+*.pyc
+*.pyo
+
+# Settings
+.vscode
