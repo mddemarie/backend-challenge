@@ -11,14 +11,14 @@ I assume you already installed Python 3.4 or higher and pip.
 Install virtualenv via pip:
 
 ```
-$ pip install virtualenv
+$ pip3 install virtualenv
 ```
 
 Create a virtual environment for a project:
 
 ```
 $ cd backend-challenge
-$ virtualenv vimcar
+$ python3 -m venv vimcar
 ```
 
 To begin using the virtual environment, it needs to be activated:
@@ -30,7 +30,7 @@ $ source vimcar/bin/activate
 Install the same packages using the same versions:
 
 ```
-$ pip install -r requirements.txt
+$ pip3 install -r requirements.txt
 ```
 
 ### Install
@@ -38,7 +38,8 @@ $ pip install -r requirements.txt
 This command will install Flask-RESTful:
 
 ```
-$ pip install flask-restful
+$ pip3 install Flask
+$ pip3 install flask-restful
 ```
 
 ### Run server
@@ -46,6 +47,8 @@ $ pip install flask-restful
 With this command:
 
 ```
+$ export FLASK_APP=api/app.py
+$ flask run
 ```
 
 ### In Browser
