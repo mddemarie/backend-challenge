@@ -33,6 +33,21 @@ Install the same packages using the same versions:
 (venv) $ pip3 install -r requirements.txt
 ```
 
+### Database
+
+Before you run the server, you will have to create a database.
+First, go to the Python shell (while you are in your virtualenv) and import the database from `app.py`:
+
+```
+from app import db
+```
+
+Secord, create the database with this command:
+
+```
+db.create_all()
+```
+
 ### Run server
 
 With this command:
