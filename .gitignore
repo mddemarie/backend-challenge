@@ -10,3 +10,6 @@ api/__pycache__/
 
 # Settings
 .vscode
+
+# Database
+database.db
