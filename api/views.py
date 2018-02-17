@@ -25,7 +25,7 @@ def token_required(f):
 @token_required
 def get_all_users(current_user):
     if not current_user.username:
-        jsonify({'message': 'You are not logged in.'})
+        jsonify({'message': 'You are not logged in.'}), 403
     users = User.query.all()
     output = []
     for user in users:
@@ -34,21 +34,21 @@ def get_all_users(current_user):
         user_data['username'] = user.username
         user_data['password'] = user.password
         output.append(user_data)
-    return jsonify({'users': output})
+    return jsonify({'users': output}), 200
 
 @app.route('/user/<public_id>', methods=['GET'])
 @token_required
 def get_one_user(current_user, public_id):
     if not current_user.username:
-        jsonify({'message': 'You are not logged in.'})
+        jsonify({'message': 'You are not logged in.'}), 403
     user = User.query.filter_by(public_id=public_id).first()
     if not user:
-        return jsonify({'message': 'No user was found.'})
+        return jsonify({'message': 'No user was found.'}), 404
     user_data = {}
     user_data['public_id'] = user.public_id
     user_data['username'] = user.username
     user_data['password'] = user.password
-    return jsonify({'user': user_data})
+    return jsonify({'user': user_data}), 200
 
 @app.route('/user', methods=['POST'])
 def create_user():
@@ -57,42 +57,42 @@ def create_user():
     new_user = User(public_id=str(uuid.uuid4()), username=data['username'], email= data['email'], password=hashed_password)
     db.session.add(new_user)
     db.session.commit()
-    return jsonify({'message': 'A new user was created.'})
+    return jsonify({'message': 'A new user was created.'}), 201
 
 @app.route('/user/<public_id>', methods = ['PUT'])
 @token_required
 def update_user(current_user, public_id):
     if not current_user.username:
-        jsonify({'message': 'You are not logged in.'})
+        jsonify({'message': 'You are not logged in.'}), 403
     data = request.get_json(force=True)
     user = User.query.filter_by(public_id=public_id).first()
     if not user:
-        return jsonify({'message': 'No user was found.'})
+        return jsonify({'message': 'No user was found.'}), 404
     update_username = User.query.filter_by(public_id=public_id).update(dict(username=data['username']))
     db.session.commit()
     hashed_password = generate_password_hash(data['password'], method='sha256')
     update_password = User.query.filter_by(public_id=public_id).update(dict(password=hashed_password))
     db.session.commit()
-    return jsonify({'message': 'The user was modified.'})
+    return jsonify({'message': 'The user was modified.'}), 200
 
 @app.route('/user/<public_id>', methods = ['DELETE'])
 @token_required
 def delete_user(current_user, public_id):
     if not current_user.username:
-        jsonify({'message': 'You are not logged in.'})
+        jsonify({'message': 'You are not logged in.'}), 403
     user = User.query.filter_by(public_id=public_id).first()
     if not user:
-        return jsonify({'message': 'No user was found.'})
+        return jsonify({'message': 'No user was found.'}), 404
     db.session.delete(user)
     db.session.commit()
-    return jsonify({'message': 'The user has been deleted.'})
+    return jsonify({'message': 'The user has been deleted.'}), 204
 
 @app.route('/login')
 def login():
     auth = request.authorization
-    if not auth or not auth.username or not auth.password:
+    if not auth or not auth.email or not auth.password:
         return make_response('Could not verify.', 401, {'WWW-Authenticate': 'Basic realm="Login required!"'})
-    user = User.query.filter_by(username=auth.username).first()
+    user = User.query.filter_by(email=auth.email).first()
     if not user:
         return make_response('Could not verify.', 401, {'WWW-Authenticate': 'Basic realm="Login required!"'})
     if check_password_hash(user.password, auth.password):
