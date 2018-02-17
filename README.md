@@ -30,16 +30,7 @@ $ source vimcar/bin/activate
 Install the same packages using the same versions:
 
 ```
-$ pip3 install -r requirements.txt
-```
-
-### Install
-
-This command will install Flask-RESTful:
-
-```
-$ pip3 install Flask
-$ pip3 install flask-restful
+(venv) $ pip3 install -r requirements.txt
 ```
 
 ### Run server
@@ -47,8 +38,9 @@ $ pip3 install flask-restful
 With this command:
 
 ```
-$ export FLASK_APP=api/app.py
-$ flask run
+(venv) $ export FLASK_APP=app.py
+(venv) $ export PYTHONPATH=/Path/to/the/app
+(venv) $ flask run
 ```
 
 ### In Browser
@@ -56,5 +48,14 @@ $ flask run
 Paste this url and hit enter:
 
 ```
-http://localhost:5000/
+http://localhost:5000/login
 ```
+
+### Tests
+
+You can run the tests with this command:
+
+```
+(venv) $ python3 api/test_views.py
+```
+
