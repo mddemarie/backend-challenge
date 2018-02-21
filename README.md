@@ -1,6 +1,8 @@
 # Vimcar Coding Challenge: Backend
 
-Building a web app using Python, Flask RESTful. It follows typical RESTful API design pattern.
+This version of code is different. I follow this documentation: <http://exploreflask.com/en/latest/users.html> that seems as the best-practice docs for email confirmation, storing password, user security and user authentication.
+
+Building a web app using Python, Flask. Unfortunately, it does not follows typical RESTful API design pattern - it could be implemented later.
 
 ## SETUP
 
@@ -63,7 +65,7 @@ With this command:
 Paste this url and hit enter:
 
 ```
-http://localhost:5000/login
+http://localhost:5000//accounts/create
 ```
 
 ### Tests
