@@ -33,6 +33,7 @@ def get_all_users(current_user):
         user_data = {}
         user_data['public_id'] = user.public_id
         user_data['username'] = user.username
+        user_data['email'] = user.email
         user_data['password'] = user.password
         output.append(user_data)
     return jsonify({'users': output}), 200
@@ -48,6 +49,7 @@ def get_one_user(current_user, public_id):
     user_data = {}
     user_data['public_id'] = user.public_id
     user_data['username'] = user.username
+    user_data['email'] = user.email
     user_data['password'] = user.password
     return jsonify({'user': user_data}), 200
 
@@ -74,6 +76,8 @@ def update_user(current_user, public_id):
     hashed_password = generate_password_hash(data['password'], method='sha256')
     update_password = User.query.filter_by(public_id=public_id).update(dict(password=hashed_password))
     db.session.commit()
+    update_email = User.query.filter_by(public_id=public_id).update(dict(email=data['email']))
+    db.session.commit()
     return jsonify({'message': 'The user was modified.'}), 200
 
 @app.route('/user/<public_id>', methods = ['DELETE'])
@@ -93,7 +97,7 @@ def login():
     auth = request.authorization
     if not auth or not auth.username or not auth.password:
         return make_response('Could not verify.', 401, {'WWW-Authenticate': 'Basic realm="Login required!"'})
-    user = User.query.filter_by(email=auth.username).first()
+    user = User.query.filter_by(username=auth.username).first()
     if not user:
         return make_response('Could not verify.', 401, {'WWW-Authenticate': 'Basic realm="Login required!"'})
     if check_password_hash(user.password, auth.password):
