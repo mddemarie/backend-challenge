@@ -78,9 +78,10 @@ You can run the tests with this command:
 
 I decided for the API integration tests because they test the overall functionality of the API endpoint (error messages, response codes, headers...). This is very important aspect for RESTful design architecture.
 
-####Integration tests:
+**Integration tests**:
 
 I write the integration tests in this order:
+
 **POST - GET - GET:id - PUT - DELETE.**
 
 For each HTTP method, I start with as little functionality as possible.
@@ -116,7 +117,7 @@ What response code the test returns does not influence my decision in which orde
 
 - the usage of the module `bcrypt` is safer
 - it is better to hash and check the password in the models.py than in the views.py
-- the functionality for sign up should be improved - **email confirmation** is totally **missing**. The sign up enables only the token generation that grants an authorized access to a protected source (GET, GET:id, PUT:id, DELETE:id). Anonymous access to POST method is possible due to necessary sign up (= creating of new user).
+- the functionality for sign up should be improved - **email confirmation** is totally **missing**. The sign up enables only the token generation that grants an authorized access to a protected source (GET, GET:id, PUT, DELETE). Anonymous access to POST method is possible due to necessary sign up (= creating of new user).
 - the sign up could implement `EmailPasswordForm` in forms.py that could be displayed on the home page for creating a new account (not obligatory for the task). 
 - it would be great to have **migrations** for changes that happen in the database fields/tables - possible to do with Alembic that is installed with requirements.txt.
 - **more integration tests** in `test_views.py` are needed for checking RESTful architechture: very important for catching errors that could return the response code 500, overwriting wrong success response codes and giving appropriate error messages if the HTTP request is not successful
