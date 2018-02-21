@@ -59,14 +59,6 @@ class UserAPITest(TestCase):
         assert 'You were logged in' in rv.data
     '''
     
-    def test_users_can_login(self):
-        User(username='Joe', email='joe@joes.com', password='12345')
-
-        response = self.client.post(url_for('users.login'),
-                                    data={'email': 'Joe', 'password': '12345'})
-
-        self.assert_redirects(response, url_for('tracking.index'))
-    
     def test_create_user_works_unauthenticated(self):
         '''
         Unauthenticated user is allowed to create an account
