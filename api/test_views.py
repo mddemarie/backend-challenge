@@ -1,3 +1,4 @@
+from flask import url_for
 from flask_testing import TestCase
 import unittest
 from app import app, db
@@ -6,16 +7,21 @@ from api.models import User
 
 class UserAPITest(TestCase):
 
-    # SQLALCHEMY_DATABASE_URI = 'sqlite:///test_database.db'
-    # TESTING = True
-
     def create_app(self):
         DEBUG = True
         app.config['TESTING'] = True
         return app
 
     def setUp(self):
-        #self.app = create_app(config_name='testing')
+        '''
+        Configurations for Testing, with a separate test database.
+        '''
+        TESTING = True
+        WTF_CSRF_ENABLED = False
+        SQLALCHEMY_DATABASE_URI = 'sqlite://'
+        HASH_ROUNDS = 1
+
+        self.app = app
         self.client = self.app.test_client
         self.user = {
             'username': 'Marie',
@@ -24,14 +30,44 @@ class UserAPITest(TestCase):
         }
         with self.app.app_context():
             db.create_all()
-    
+
+    '''
+    Here I wanted to set the logged user but it did not work.
+    I would have to know much more about request context in Flask.
+
+    def test_adduser(self):
+        user = User(username="test", email="test@test.com")
+        user2 = User(username="lucas", email="lucas@test.com")
+
+        db.session.add(user)
+        db.session.commit()
+
+        assert user in db.session
+        assert user2 not in db.session
+
     def login(self, username, password):
-        return self.app.post('/login', data=dict(
+        return self.client.post('/login', data=dict(
             username=user.username,
             password=user.password
-        ))
+        ), follow_redirects=True)
+
+    def logout(self):
+        return self.client.get('/logout', follow_redirects=True)
+
+    def test_login(self):
+        rv = self.login('lucas', 'test')
+        assert 'You were logged in' in rv.data
+    '''
     
-    def test_create_user_works_as_non_user(self):
+    def test_users_can_login(self):
+        User(username='Joe', email='joe@joes.com', password='12345')
+
+        response = self.client.post(url_for('users.login'),
+                                    data={'email': 'Joe', 'password': '12345'})
+
+        self.assert_redirects(response, url_for('tracking.index'))
+    
+    def test_create_user_works_unauthenticated(self):
         '''
         Unauthenticated user is allowed to create an account
         '''
@@ -40,19 +76,23 @@ class UserAPITest(TestCase):
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.first, jsonify({'message': 'A new user was created.'}))
 
-    def test_create_user_fails_as_user(self):
+    def test_create_user_fails_authenticated(self):
         '''
         Authenticated user is not allowed to create another account
         '''
-        self.login('Jane', 'einewelt')
-        response = self.client().post('/user', data=self.user)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, jsonify({'message': 'You already have an account and are logged in.'}))
+        user = User(username="Joe", email="joe@joes.com", password="12345")
+        db.session.add(user)
+        db.session.commit()
+        with self.client:
+            self.client().get('/login', data=user)
+            response = self.client().post('/user', data=user)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.data, jsonify({'message': 'You already have an account and are logged in.'}))
 
     def tearDown(self):
         with self.app.app_context():
             db.session.remove()
             db.drop_all()
-
+    
 if __name__ == '__main__':
     unittest.main()
