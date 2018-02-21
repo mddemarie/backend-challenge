@@ -1,102 +1,85 @@
-from flask import render_template, request, jsonify, make_response
-from werkzeug.security import generate_password_hash, check_password_hash
-import uuid, jwt, datetime
-from functools import wraps
+from flask import redirect, render_template, url_for
+from flask_login import login_user, logout_user
 
-from app import app
+from app import app, db
+from api.forms import EmailPasswordForm
+from api.util.security import ts
+from api.util.util import send_email
 from api.models import User
 
-def token_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = None
-        if 'x-access-token' in request.headers:
-            token = request.headers['x-access-token']
-        if not token:
-            return jsonify({'message': 'Token is missing.'}), 401
-        try:
-            data = jwt.decode(token, app.config['SECRET_KEY'])
-            current_user = User.query.filter_by(public_id=data['public_id']).first()
-        except:
-            return jsonify({'message': 'Token is invalid.'}), 401
-        return f(current_user, *args, **kwargs)
-    return decorated
+@app.route('/accounts/create', methods=['GET', 'POST'])
+def create_account():
+    form = EmailPasswordForm()
+    if form.validate_on_submit():
+        user = User(
+            email = form.email.data,
+            password = form.password.data
+        )
+        db.session.add(user)
+        db.session.commit()
 
-@app.route('/user', methods=['GET'])
-@token_required
-def get_all_users(current_user):
-    if not current_user.username:
-        jsonify({'message': 'You are not logged in.'}), 403
-    users = User.query.all()
-    output = []
-    for user in users:
-        user_data = {}
-        user_data['public_id'] = user.public_id
-        user_data['username'] = user.username
-        user_data['password'] = user.password
-        output.append(user_data)
-    return jsonify({'users': output}), 200
+        # Here is sent the email confirmation link
+        subject = 'Confirm your email'
+        token = ts.dumps(self.email, salt='email-confim-key')
 
-@app.route('/user/<public_id>', methods=['GET'])
-@token_required
-def get_one_user(current_user, public_id):
-    if not current_user.username:
-        jsonify({'message': 'You are not logged in.'}), 403
-    user = User.query.filter_by(public_id=public_id).first()
-    if not user:
-        return jsonify({'message': 'No user was found.'}), 404
-    user_data = {}
-    user_data['public_id'] = user.public_id
-    user_data['username'] = user.username
-    user_data['password'] = user.password
-    return jsonify({'user': user_data}), 200
+        confirm_url = url_for(
+            'confirm_email',
+            token=token,
+            _external=True
+        )
 
-@app.route('/user', methods=['POST'])
-def create_user():
-    data = request.get_json(force=True)
-    hashed_password = generate_password_hash(data['password'], method='sha256')
-    new_user = User(public_id=str(uuid.uuid4()), username=data['username'], email= data['email'], password=hashed_password)
-    db.session.add(new_user)
+        html = render_template(
+            'email/activate.html',
+            confirm_url=confirm_url
+        )
+
+        send_email(user.email, subject, html)
+        return redirect(url_for('index'))
+
+    return render_template('accounts/create.html', form=form)
+
+@app.route('/confirm/<token>')
+def confirm_email(token):
+    try:
+        email = ts.loads(token, salt='email-confirm-key', max_age=86400)
+    except:
+        abort(404)
+
+    user = User.query.filter_by(email=email).first_or_404()
+
+    user.email_confirmed = True
+
+    db.session.add(user)
     db.session.commit()
-    return jsonify({'message': 'A new user was created.'}), 201
 
-@app.route('/user/<public_id>', methods = ['PUT'])
-@token_required
-def update_user(current_user, public_id):
-    if not current_user.username:
-        jsonify({'message': 'You are not logged in.'}), 403
-    data = request.get_json(force=True)
-    user = User.query.filter_by(public_id=public_id).first()
-    if not user:
-        return jsonify({'message': 'No user was found.'}), 404
-    update_username = User.query.filter_by(public_id=public_id).update(dict(username=data['username']))
-    db.session.commit()
-    hashed_password = generate_password_hash(data['password'], method='sha256')
-    update_password = User.query.filter_by(public_id=public_id).update(dict(password=hashed_password))
-    db.session.commit()
-    return jsonify({'message': 'The user was modified.'}), 200
+    return redirect(url_for('signin'))
 
-@app.route('/user/<public_id>', methods = ['DELETE'])
-@token_required
-def delete_user(current_user, public_id):
-    if not current_user.username:
-        jsonify({'message': 'You are not logged in.'}), 403
-    user = User.query.filter_by(public_id=public_id).first()
-    if not user:
-        return jsonify({'message': 'No user was found.'}), 404
-    db.session.delete(user)
-    db.session.commit()
-    return jsonify({'message': 'The user has been deleted.'}), 204
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    form = EmailPasswordForm()
+    if form.validate_on_submit():
+        user = User(email=form.email.data, password=form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        return redirect(url_for('index'))
 
-@app.route('/login')
-def login():
-    auth = request.authorization
-    if not auth or not auth.username or not auth.password:
-        return make_response('Could not verify.', 401, {'WWW-Authenticate': 'Basic realm="Login required!"'})
-    user = User.query.filter_by(email=auth.username).first()
-    if not user:
-        return make_response('Could not verify.', 401, {'WWW-Authenticate': 'Basic realm="Login required!"'})
-    if check_password_hash(user.password, auth.password):
-        token = jwt.encode({'public_id': user.public_id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, app.config['SECRET_KEY'])
-        return jsonify({'token': token.decode('UTF-8')})
-    return make_response('Could not verify.', 401, {'WWW-Authenticate': 'Basic realm="Login required!"'})  
+    return render_template('signup.html', form=form)
+
+@app.route('/signin', methods=['GET', 'POST'])
+def signin():
+    form = EmailPasswordForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first_or_404()
+        if user.is_correct_password(form.password.data):
+            login_user(user)
+
+            return redirect(url_for('index'))
+        else:
+            return redirect(url_for('signin'))
+    return render_template('signin.html', form=form)
+
+@app.route('/signout')
+def signout():
+    logout_user(user)
+
+    return redirect(url_for('index'))
