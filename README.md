@@ -1,6 +1,6 @@
 # Vimcar Coding Challenge: Backend
 
-Building a web app using Python, Flask RESTful. It follows typical RESTful API design pattern.
+Building a web app using Python, Flask. It follows typical RESTful API design pattern.
 
 ## SETUP
 
